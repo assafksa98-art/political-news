@@ -1,0 +1,153 @@
+:root {
+  --bg: #0f1419;
+  --surface: #1a212b;
+  --surface-2: #222b37;
+  --border: #2c3744;
+  --text: #e7edf3;
+  --muted: #93a1b1;
+  --accent: #d98324;
+  --accent-2: #4a9eda;
+  --link: #cfe3f5;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
+  line-height: 1.7;
+}
+
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* الرأس */
+.site-header {
+  background: linear-gradient(180deg, #15202b, #0f1419);
+  border-bottom: 3px solid var(--accent);
+  padding: 28px 0 18px;
+}
+.site-header h1 {
+  margin: 0 0 6px;
+  font-size: 2rem;
+  color: #fff;
+}
+.subtitle {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.updated {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.nav a {
+  background: var(--surface-2);
+  color: var(--link);
+  text-decoration: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  transition: background 0.15s, border-color 0.15s;
+}
+.nav a:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* الأقسام */
+main { padding: 24px 16px 40px; }
+.category { margin-bottom: 34px; }
+.category-title {
+  font-size: 1.35rem;
+  margin: 0 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.category-title .count {
+  background: var(--accent-2);
+  color: #fff;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-weight: 700;
+}
+.summary {
+  background: var(--surface);
+  border-right: 3px solid var(--accent);
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 0 0 16px;
+  color: #d7e2ee;
+}
+
+/* البطاقات */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.card:hover { border-color: var(--accent-2); transform: translateY(-2px); }
+.headline {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.02rem;
+}
+.headline:hover { color: var(--accent-2); }
+.snippet {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.source { color: var(--accent); font-weight: 600; }
+
+/* التذييل */
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 18px 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .site-header h1 { font-size: 1.6rem; }
+  .cards { grid-template-columns: 1fr; }
+}
