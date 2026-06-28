@@ -142,16 +142,34 @@ async function main() {
   const byCat = new Map(CATEGORIES.map((c) => [c.id, []]));
   for (const it of all) byCat.get(categorize(it)).push(it);
 
+  // التلخيص الذكي عبر Claude — يُفعّل تلقائياً فقط عند وجود ANTHROPIC_API_KEY
+  let summarizeCategory = null;
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      ({ summarizeCategory } = await import("./lib/summarize.mjs"));
+      console.log("التلخيص بـ Claude: مُفعّل");
+    } catch (err) {
+      console.warn(`تعذّر تحميل وحدة التلخيص: ${err.message}`);
+    }
+  } else {
+    console.log("التلخيص بـ Claude: غير مُفعّل (لا يوجد ANTHROPIC_API_KEY)");
+  }
+
   const categories = [];
   for (const cat of CATEGORIES) {
     const picked = byCat
       .get(cat.id)
       .slice(0, TOP_PER_CATEGORY)
       .map((it) => ({ ...it, dateText: it.date ? formatRiyadh(it.date) : "" }));
+    let summary = "";
+    if (summarizeCategory && picked.length) {
+      summary = await summarizeCategory(cat.title, picked);
+    }
     categories.push({
       id: cat.id,
       title: cat.title,
       flags: cat.flags || [],
+      summary,
       featured: picked[0] || null,
       items: picked.slice(1),
     });

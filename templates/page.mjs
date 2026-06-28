@@ -59,12 +59,16 @@ function renderItem(item, i) {
 function renderCategory(cat) {
   if (!cat.featured && !cat.items.length) return "";
   const cards = cat.items.map(renderItem).join("");
+  const summary = cat.summary
+    ? `<div class="summary"><span class="summary-label">الزبدة</span><p>${escapeHtml(cat.summary)}</p></div>`
+    : "";
   return `
     <section class="category" id="${escapeHtml(cat.id)}">
       <h2 class="category-title">
         <span class="flags">${flagImgs(cat.flags)}</span>
         <span class="cat-name">${escapeHtml(cat.title)}</span>
       </h2>
+      ${summary}
       ${renderFeatured(cat.featured)}
       <div class="cards">${cards}</div>
     </section>`;
