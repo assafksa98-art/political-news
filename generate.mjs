@@ -70,9 +70,18 @@ function pickImage(it) {
   return "";
 }
 
+// مؤقّت صارم: يضمن عدم تجمّد عملية الجلب مهما حصل (بعض الخوادم لا يقطعها مؤقّت rss-parser).
+function withHardTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`مهلة صارمة (${ms / 1000}ث)`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function fetchFeed(feed) {
   try {
-    const parsed = await parser.parseURL(feed.url);
+    const parsed = await withHardTimeout(parser.parseURL(feed.url), 20000);
     const items = (parsed.items || []).map((it) => {
       const dateRaw = it.isoDate || it.pubDate || null;
       const date = dateRaw ? new Date(dateRaw) : null;
