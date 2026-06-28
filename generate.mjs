@@ -127,6 +127,7 @@ async function main() {
   await mkdir(DIST, { recursive: true });
   await writeFile(join(DIST, "index.html"), html, "utf8");
   await copyFile(join(__dirname, "public", "styles.css"), join(DIST, "styles.css"));
+  await copyFile(join(__dirname, "public", "robots.txt"), join(DIST, "robots.txt"));
 
   console.log(`\nتم البناء: ${all.length} خبراً في dist/index.html`);
 }
