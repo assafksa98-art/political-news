@@ -35,7 +35,7 @@ img.flag {
   background: radial-gradient(1200px 300px at 70% -50%, rgba(240,136,62,0.18), transparent),
               linear-gradient(180deg, #11171f, #0d1117);
   border-bottom: 1px solid var(--border);
-  padding: 30px 0 20px;
+  padding: 12px 0 10px;
 }
 .site-header h1 {
   margin: 0 0 6px;
@@ -44,7 +44,7 @@ img.flag {
   letter-spacing: -0.5px;
 }
 .subtitle { margin: 0 0 10px; color: var(--accent); font-weight: 600; font-size: 0.95rem; }
-.updated { margin: 0 0 16px; color: var(--muted); font-size: 0.85rem; display: flex; align-items: center; gap: 7px; }
+.updated { margin: 0; color: var(--muted); font-size: 0.85rem; display: flex; align-items: center; gap: 7px; }
 .dot {
   width: 9px; height: 9px; border-radius: 50%;
   background: #3fb950; box-shadow: 0 0 0 0 rgba(63,185,80,0.6);

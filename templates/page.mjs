@@ -103,8 +103,6 @@ export function renderPage(data) {
 <body>
   <header class="site-header">
     <div class="wrap">
-      <h1>التقرير السياسي اليومي</h1>
-      <p class="subtitle">أبرز الأخبار السياسية من صحف عالمية — مُحدّثة تلقائياً</p>
       <p class="updated"><span class="dot"></span> آخر تحديث: ${escapeHtml(data.updatedAt)} (توقيت السعودية)</p>
     </div>
   </header>
