@@ -1,78 +1,83 @@
-// مصادر RSS العربية + تعريف فئات المواضيع وكلماتها المفتاحية وأعلامها.
-// أي خلاصة تفشل أثناء الجلب يتم تجاهلها (لا توقف البناء).
+// مصادر إخبارية عالمية (أخبار سياسية) + فئات المواضيع وكلماتها (إنجليزية) وأعلامها.
+// alwaysPolitical: أقسام سياسة صرفة (كل عناصرها سياسية). googleNews: يُنظّف لاحقة العنوان.
 
 export const FEEDS = [
-  { name: "BBC عربي", url: "https://feeds.bbci.co.uk/arabic/rss.xml" },
-  { name: "RT عربي", url: "https://arabic.rt.com/rss/" },
-  { name: "سكاي نيوز عربية", url: "https://www.skynewsarabia.com/rss" },
-  { name: "CNN عربي", url: "https://arabic.cnn.com/api/v1/rss/rss.xml" },
-  { name: "الجزيرة", url: "https://www.aljazeera.net/aljazeerarss" },
-  { name: "DW عربي", url: "https://rss.dw.com/xml/rss-ar-all" },
-  { name: "يورونيوز عربي", url: "https://arabic.euronews.com/rss" },
+  { name: "New York Times", url: "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml", alwaysPolitical: true },
+  { name: "New York Times", url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
+  { name: "Washington Post", url: "https://feeds.washingtonpost.com/rss/politics", alwaysPolitical: true },
+  { name: "Washington Post", url: "https://feeds.washingtonpost.com/rss/world" },
+  { name: "Reuters", url: "https://news.google.com/rss/search?q=when:2d%20site:reuters.com&hl=en-US&gl=US&ceid=US:en", googleNews: true },
+  { name: "Associated Press", url: "https://news.google.com/rss/search?q=when:2d%20site:apnews.com&hl=en-US&gl=US&ceid=US:en", googleNews: true },
+  { name: "The Guardian", url: "https://www.theguardian.com/world/rss" },
+  { name: "BBC", url: "https://feeds.bbci.co.uk/news/world/rss.xml" },
 ];
 
-// الفئات بالترتيب الذي ستظهر به في الصفحة.
-// flags: أكواد دول (ISO) تُعرض كأعلام عبر flagcdn.com.
+// كلمات سياسية عامة (تحدّد ما إذا كان الخبر سياسياً) — تُطابق بحدود الكلمات.
+export const POLITICAL_KEYWORDS = [
+  "president", "election", "vote", "ballot", "government", "parliament",
+  "congress", "senate", "minister", "diplomat", "diplomacy", "sanction",
+  "sanctions", "treaty", "military", "war", "troops", "missile", "nuclear",
+  "summit", "policy", "geopolitical", "foreign policy", "coup", "protest",
+  "referendum", "legislation", "white house", "kremlin", "nato", "tariff",
+  "tariffs", "embassy", "ceasefire", "negotiations", "ambassador", "regime",
+  "airstrike", "defense", "defence", "united nations", "lawmaker", "diplomatic",
+  "geopolitics", "strike", "border", "annex", "invasion",
+];
+
+// الفئات بالترتيب المعروض. العناوين عربية، والكلمات إنجليزية لمطابقة الأخبار.
 export const CATEGORIES = [
   {
     id: "iran-us",
     title: "إيران – أمريكا",
     flags: ["ir", "us"],
-    keywords: [
-      "إيران", "ايران", "طهران", "إيراني", "ايراني", "نووي", "الحرس الثوري",
-      "خامنئي", "بزشكيان", "ترامب", "واشنطن", "البنتاغون", "البيت الأبيض",
-    ],
+    keywords: ["iran", "tehran", "iranian", "khamenei", "pezeshkian", "revolutionary guard"],
   },
   {
     id: "saudi",
     title: "السعودية",
     flags: ["sa"],
-    keywords: [
-      "السعودية", "السعودي", "الرياض", "ابن سلمان", "بن سلمان",
-      "محمد بن سلمان", "المملكة العربية", "رؤية 2030", "نيوم",
-    ],
+    keywords: ["saudi", "riyadh", "bin salman", "mbs", "saudi arabia", "aramco"],
   },
   {
     id: "gulf",
     title: "الخليج",
     flags: ["ae", "qa", "kw", "bh", "om"],
     keywords: [
-      "الإمارات", "الامارات", "أبوظبي", "ابوظبي", "دبي", "قطر", "الدوحة",
-      "الكويت", "البحرين", "المنامة", "عُمان", "عمان", "مسقط", "الخليج",
-      "مجلس التعاون",
+      "uae", "emirates", "abu dhabi", "dubai", "qatar", "doha", "kuwait",
+      "bahrain", "manama", "oman", "muscat", "gulf cooperation", "gcc",
     ],
   },
   {
     id: "ukraine",
     title: "أوكرانيا",
     flags: ["ua"],
-    keywords: ["أوكرانيا", "اوكرانيا", "كييف", "زيلينسكي", "أوكراني", "اوكراني"],
+    keywords: ["ukraine", "ukrainian", "kyiv", "kiev", "zelensky", "zelenskyy"],
   },
   {
     id: "russia",
     title: "روسيا",
     flags: ["ru"],
-    keywords: ["روسيا", "موسكو", "بوتين", "الكرملين", "روسي", "لافروف"],
+    keywords: ["russia", "russian", "moscow", "putin", "kremlin", "lavrov"],
   },
   {
     id: "china",
     title: "الصين",
     flags: ["cn"],
-    keywords: ["الصين", "بكين", "تايوان", "شي جين بينغ", "صيني", "هونغ كونغ"],
+    keywords: ["china", "chinese", "beijing", "taiwan", "xi jinping", "hong kong"],
   },
   {
     id: "usa",
     title: "أمريكا",
     flags: ["us"],
     keywords: [
-      "أمريكا", "امريكا", "الولايات المتحدة", "أمريكي", "امريكي",
-      "الكونغرس", "واشنطن", "البيت الأبيض", "البنتاغون",
+      "united states", "u.s.", "american", "washington", "white house",
+      "pentagon", "trump", "biden", "congress", "republican", "democrat",
     ],
   },
   {
     id: "other",
-    title: "أخبار أخرى",
+    title: "أخبار سياسية أخرى",
     flags: [],
-    keywords: [], // فئة افتراضية لما لا يتطابق مع غيرها
+    keywords: [], // بقية الأخبار السياسية التي لا تندرج تحت فئة محددة
   },
 ];

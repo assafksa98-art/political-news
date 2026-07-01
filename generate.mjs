@@ -1,11 +1,11 @@
-// السكربت الرئيسي: يجلب RSS بالتوازي، يوحّد ويزيل التكرار، يصنّف،
-// يختار «أبرز الأخبار» لكل فئة، ثم يكتب dist/index.html و dist/styles.css.
+// السكربت الرئيسي: يجلب RSS بالتوازي، يوحّد ويزيل التكرار، يُبقي السياسي فقط،
+// يصنّف، يختار «أبرز الأخبار» لكل فئة، ثم يكتب dist/index.html و dist/styles.css.
 
 import { mkdir, copyFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import Parser from "rss-parser";
-import { FEEDS, CATEGORIES } from "./feeds.js";
+import { FEEDS, CATEGORIES, POLITICAL_KEYWORDS } from "./feeds.js";
 import { renderPage } from "./templates/page.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -26,6 +26,16 @@ const parser = new Parser({
   },
 });
 
+// مطابقة بحدود الكلمات (تتجنّب المطابقات الجزئية مثل "war" داخل "warehouse").
+function makeMatcher(terms) {
+  if (!terms || !terms.length) return null;
+  const esc = terms.map((t) => t.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(`(^|[^a-z])(${esc.join("|")})([^a-z]|$)`, "i");
+}
+
+const POLITICAL_RE = makeMatcher(POLITICAL_KEYWORDS);
+const CAT_MATCHERS = CATEGORIES.map((c) => ({ ...c, re: makeMatcher(c.keywords) }));
+
 function stripHtml(s = "") {
   return s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
@@ -42,7 +52,6 @@ function formatRiyadh(date) {
   }
 }
 
-// يستخرج رابط صورة من حقول RSS المتعددة، أو "" إن لم توجد.
 function pickImage(it) {
   const fromMedia = (m) => {
     if (!m) return null;
@@ -55,9 +64,7 @@ function pickImage(it) {
     }
     return m?.$?.url || null;
   };
-  if (it.enclosure?.url && /^image\//.test(it.enclosure.type || "image/")) {
-    return it.enclosure.url;
-  }
+  if (it.enclosure?.url && /^image\//.test(it.enclosure.type || "image/")) return it.enclosure.url;
   let u = fromMedia(it.mediaContent) || fromMedia(it.mediaThumbnail);
   if (u) return u;
   if (it.mediaGroup) {
@@ -70,7 +77,14 @@ function pickImage(it) {
   return "";
 }
 
-// مؤقّت صارم: يضمن عدم تجمّد عملية الجلب مهما حصل (بعض الخوادم لا يقطعها مؤقّت rss-parser).
+// هل الخبر سياسي؟ أقسام السياسة الصرفة تُقبل دائماً؛ غيرها يحتاج مطابقة سياسية/جغرافية.
+function isPolitical(hay, feed) {
+  if (feed.alwaysPolitical) return true;
+  if (POLITICAL_RE && POLITICAL_RE.test(hay)) return true;
+  return CAT_MATCHERS.some((c) => c.re && c.re.test(hay));
+}
+
+// مؤقّت صارم: يضمن عدم تجمّد عملية الجلب مهما حصل.
 function withHardTimeout(promise, ms) {
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -85,13 +99,18 @@ async function fetchFeed(feed) {
     const items = (parsed.items || []).map((it) => {
       const dateRaw = it.isoDate || it.pubDate || null;
       const date = dateRaw ? new Date(dateRaw) : null;
+      let title = stripHtml(it.title || "").trim();
+      if (feed.googleNews) title = title.replace(/\s+-\s+[^-–—]+$/, "").trim();
+      const snippet = stripHtml(it.contentSnippet || it.content || it.summary || "").slice(0, 220);
+      const hay = `${title} ${snippet}`;
       return {
-        title: stripHtml(it.title || "").trim(),
+        title,
         link: (it.link || "").trim(),
-        snippet: stripHtml(it.contentSnippet || it.content || it.summary || "").slice(0, 220),
+        snippet,
         image: pickImage(it),
         source: feed.name,
         date: date && !isNaN(date) ? date : null,
+        political: isPolitical(hay, feed),
       };
     });
     console.log(`✓ ${feed.name}: ${items.length} عنصر`);
@@ -115,16 +134,13 @@ function dedupe(items) {
 }
 
 function categorize(item) {
-  const haystack = `${item.title} ${item.snippet}`;
-  for (const cat of CATEGORIES) {
-    if (cat.keywords.length && cat.keywords.some((k) => haystack.includes(k))) {
-      return cat.id;
-    }
+  const hay = `${item.title} ${item.snippet}`;
+  for (const cat of CAT_MATCHERS) {
+    if (cat.re && cat.re.test(hay)) return cat.id;
   }
   return "other";
 }
 
-// ترتيب الأهمية: الأحدث أولاً، مع تفضيل بسيط للأخبار التي تحمل صورة.
 function importanceSort(a, b) {
   const t = (b.date?.getTime() || 0) - (a.date?.getTime() || 0);
   if (t !== 0) return t;
@@ -136,8 +152,11 @@ async function main() {
   const results = await Promise.allSettled(FEEDS.map(fetchFeed));
   let all = results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 
+  const before = all.length;
+  all = all.filter((it) => it.political); // أخبار سياسية فقط
   all = dedupe(all);
   all.sort(importanceSort);
+  console.log(`سياسي فقط: ${all.length} من ${before}`);
 
   const byCat = new Map(CATEGORIES.map((c) => [c.id, []]));
   for (const it of all) byCat.get(categorize(it)).push(it);
@@ -178,7 +197,7 @@ async function main() {
   const html = renderPage({
     updatedAt: formatRiyadh(new Date()),
     categories,
-    sourceCount: FEEDS.length,
+    sourceCount: new Set(FEEDS.map((f) => f.name)).size,
     totalItems: all.length,
   });
 
@@ -187,7 +206,7 @@ async function main() {
   await copyFile(join(__dirname, "public", "styles.css"), join(DIST, "styles.css"));
   await copyFile(join(__dirname, "public", "robots.txt"), join(DIST, "robots.txt"));
 
-  console.log(`\nتم البناء: ${all.length} خبراً (أبرزها في كل فئة) في dist/index.html`);
+  console.log(`\nتم البناء: ${all.length} خبراً سياسياً (أبرزها في كل فئة) في dist/index.html`);
 }
 
 main().catch((err) => {
