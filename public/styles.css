@@ -65,8 +65,38 @@ img.flag {
 .nav a:hover { background: var(--accent); color: #1a1100; border-color: var(--accent); transform: translateY(-1px); }
 .nav a .flag { width: 18px; height: 13px; }
 
+/* الكرة الأرضية */
+.globe-hero {
+  position: relative; text-align: center; padding: 6px 0 10px;
+  background: radial-gradient(760px 340px at 50% -10%, rgba(74,158,218,0.14), transparent);
+  border-bottom: 1px solid var(--border);
+}
+.globe-hint { margin: 8px 0 2px; color: var(--muted); font-size: 0.92rem; }
+.globe-hint b { color: var(--accent); }
+#globe {
+  width: 100%; min-height: 320px; display: flex;
+  align-items: center; justify-content: center; cursor: grab;
+}
+#globe:active { cursor: grabbing; }
+.globe-loading { color: var(--muted); padding: 60px 0; font-size: 0.9rem; }
+.globe-hero .nav { justify-content: center; margin-top: 6px; }
+
 /* الأقسام */
 main { padding: 26px 16px 44px; }
+.category.flash { animation: flashCat 1.6s ease; border-radius: 12px; }
+@keyframes flashCat {
+  0%, 100% { background: transparent; }
+  25% { background: rgba(240,136,62,0.14); }
+}
+
+/* تنبيه منبثق */
+.toast {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--accent);
+  padding: 10px 18px; border-radius: 999px; font-size: 0.9rem; z-index: 60;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s, transform 0.3s;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .category { margin-bottom: 40px; animation: fadeUp 0.5s ease both; }
 .category-title {
   font-size: 1.4rem; margin: 0 0 16px; padding-bottom: 8px;
