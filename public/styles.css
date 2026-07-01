@@ -12,6 +12,59 @@
 
 * { box-sizing: border-box; }
 
+/* خلفية الفضاء: نجوم + شهب */
+.sky {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, #121a27 0%, #0d1117 55%, #080b10 100%);
+}
+.sky .stars, .sky .stars2, .sky .stars3 { position: absolute; inset: 0; background-repeat: repeat; }
+.sky .stars {
+  background-image:
+    radial-gradient(1.2px 1.2px at 25px 35px, #fff, transparent),
+    radial-gradient(1px 1px at 80px 120px, #cfe3f5, transparent),
+    radial-gradient(1.4px 1.4px at 150px 60px, #fff, transparent),
+    radial-gradient(1px 1px at 200px 180px, #fff, transparent),
+    radial-gradient(1px 1px at 60px 220px, #bcd4ea, transparent),
+    radial-gradient(1.3px 1.3px at 120px 270px, #fff, transparent);
+  background-size: 260px 300px;
+  animation: twinkle 4s ease-in-out infinite alternate, drift 140s linear infinite;
+}
+.sky .stars2 {
+  background-image:
+    radial-gradient(1px 1px at 40px 60px, #fff, transparent),
+    radial-gradient(1.6px 1.6px at 170px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 100px 150px, #9fb8d6, transparent),
+    radial-gradient(1.3px 1.3px at 220px 210px, #fff, transparent);
+  background-size: 340px 340px; opacity: 0.7;
+  animation: twinkle 6s ease-in-out infinite alternate, drift 240s linear infinite;
+}
+.sky .stars3 {
+  background-image:
+    radial-gradient(2px 2px at 130px 90px, #fff, transparent),
+    radial-gradient(1.8px 1.8px at 300px 200px, #e8f0ff, transparent);
+  background-size: 480px 480px; opacity: 0.9;
+  animation: twinkle 3s ease-in-out infinite alternate, drift 320s linear infinite;
+}
+@keyframes twinkle { from { opacity: 0.45; } to { opacity: 1; } }
+@keyframes drift { from { background-position: 0 0; } to { background-position: 0 1200px; } }
+
+.shooting-stars span {
+  position: absolute; width: 150px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,0), #fff);
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.85));
+  opacity: 0; animation: shoot 9s linear infinite;
+}
+@keyframes shoot {
+  0%   { transform: rotate(135deg) translateX(-60px); opacity: 0; }
+  2%   { opacity: 1; }
+  14%  { transform: rotate(135deg) translateX(760px); opacity: 0; }
+  100% { transform: rotate(135deg) translateX(760px); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky .stars, .sky .stars2, .sky .stars3, .shooting-stars span { animation: none !important; }
+  .shooting-stars { display: none; }
+}
+
 html, body {
   margin: 0;
   padding: 0;

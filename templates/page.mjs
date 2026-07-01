@@ -101,6 +101,19 @@ export function renderPage(data) {
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="sky" aria-hidden="true">
+    <div class="stars"></div>
+    <div class="stars2"></div>
+    <div class="stars3"></div>
+    <div class="shooting-stars">
+      <span style="top:6%; left:18%; animation-delay:0s"></span>
+      <span style="top:2%; left:52%; animation-delay:3.5s"></span>
+      <span style="top:12%; left:74%; animation-delay:6s"></span>
+      <span style="top:30%; left:88%; animation-delay:9.5s"></span>
+      <span style="top:20%; left:35%; animation-delay:13s"></span>
+    </div>
+  </div>
+
   <header class="site-header">
     <div class="wrap">
       <p class="updated"><span class="dot"></span> آخر تحديث: ${escapeHtml(data.updatedAt)} (توقيت السعودية)</p>
