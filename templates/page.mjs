@@ -96,10 +96,13 @@ export function renderPage(data) {
     <div class="stars3"></div>
     <div class="shooting-stars">
       <span style="top:6%; left:18%; animation-delay:0s"></span>
-      <span style="top:2%; left:52%; animation-delay:3.5s"></span>
-      <span style="top:12%; left:74%; animation-delay:6s"></span>
-      <span style="top:30%; left:88%; animation-delay:9.5s"></span>
-      <span style="top:20%; left:35%; animation-delay:13s"></span>
+      <span style="top:2%; left:52%; animation-delay:2s"></span>
+      <span style="top:12%; left:74%; animation-delay:4s"></span>
+      <span style="top:30%; left:88%; animation-delay:6s"></span>
+      <span style="top:20%; left:35%; animation-delay:8s"></span>
+      <span style="top:4%; left:64%; animation-delay:10s"></span>
+      <span style="top:26%; left:10%; animation-delay:12s"></span>
+      <span style="top:16%; left:45%; animation-delay:14s"></span>
     </div>
   </div>
 
@@ -170,8 +173,12 @@ export function renderPage(data) {
       function infoOf(p){ return INFO[p.ISO_A2] || INFO[NAME_ISO[p.ADMIN]] || INFO[NAME_ISO[p.NAME]] || null; }
       function has(p){ var i=infoOf(p); return !!i && NEWS[i.cat] && NEWS[i.cat].length; }
 
-      document.getElementById("scrollDown").addEventListener("click", function(){
-        document.getElementById("allNews").scrollIntoView({behavior:"smooth"});
+      var newsBtn = document.getElementById("scrollDown");
+      newsBtn.addEventListener("click", function(){
+        var open = document.body.classList.toggle("news-open");
+        newsBtn.textContent = open ? "إخفاء الأخبار ▴" : "كل الأخبار ▾";
+        if (open) setTimeout(function(){ document.getElementById("allNews").scrollIntoView({behavior:"smooth"}); }, 40);
+        else window.scrollTo({ top:0, behavior:"smooth" });
       });
 
       // === العرض الجوي للعاصمة (Leaflet + صور أقمار Esri) ===
