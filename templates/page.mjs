@@ -243,6 +243,12 @@ export function renderPage(data) {
             });
 
           world.pointOfView({ lat:20, lng:20, altitude:2.4 }, 0);
+          // إجبار شفافية خلفية الكرة حتى تظهر النجوم والشهب من حولها
+          try {
+            if (world.renderer) world.renderer().setClearColor(0x000000, 0);
+            if (world.scene) world.scene().background = null;
+            var cv = el.querySelector("canvas"); if (cv) cv.style.background = "transparent";
+          } catch (e) {}
           var c = world.controls(); c.autoRotate = true; c.autoRotateSpeed = 0.5; c.enableZoom = true; c.minDistance = 160;
           window.addEventListener("resize", function(){ var s=size(); world.width(s.w).height(s.h); });
         })

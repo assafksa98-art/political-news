@@ -74,10 +74,11 @@
   .shooting-stars { display: none; }
 }
 
-html, body {
+html { background: #080b10; }
+body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
   font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
   line-height: 1.7;
