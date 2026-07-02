@@ -222,9 +222,9 @@ export function renderPage(data) {
             .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
             .polygonsData(geo.features)
             .polygonAltitude(function(f){ return has(f.properties) ? 0.02 : 0.006; })
-            .polygonCapColor(function(f){ return has(f.properties) ? "rgba(240,136,62,0.35)" : "rgba(255,255,255,0.015)"; })
-            .polygonSideColor(function(f){ return has(f.properties) ? "rgba(240,136,62,0.25)" : "rgba(255,255,255,0)"; })
-            .polygonStrokeColor(function(f){ return has(f.properties) ? "rgba(255,193,120,0.95)" : "rgba(255,255,255,0.10)"; })
+            .polygonCapColor(function(f){ return has(f.properties) ? "rgba(74,158,218,0.38)" : "rgba(255,255,255,0.015)"; })
+            .polygonSideColor(function(f){ return has(f.properties) ? "rgba(74,158,218,0.28)" : "rgba(255,255,255,0)"; })
+            .polygonStrokeColor(function(f){ return has(f.properties) ? "rgba(140,200,245,0.95)" : "rgba(255,255,255,0.10)"; })
             .polygonLabel(function(f){ var i=infoOf(f.properties); return "<div style='font-family:sans-serif;text-align:center;color:#fff'><b>"+(f.properties.ADMIN||"")+"</b><br/>"+(i && NEWS[i.cat] && NEWS[i.cat].length ? "اضغط لعرض العاصمة والأخبار" : "لا توجد أخبار")+"</div>"; })
             .onPolygonClick(function(f){
               var info = infoOf(f.properties);
