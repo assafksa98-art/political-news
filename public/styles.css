@@ -15,8 +15,9 @@
 /* خلفية الفضاء: نجوم + شهب */
 .sky {
   position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 0%, #121a27 0%, #0d1117 55%, #080b10 100%);
+  background: #06080c;
 }
+#starfield { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .sky .stars, .sky .stars2, .sky .stars3 { position: absolute; inset: 0; background-repeat: repeat; }
 .sky .stars {
   background-image:

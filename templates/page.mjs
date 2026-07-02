@@ -90,21 +90,7 @@ export function renderPage(data) {
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="sky" aria-hidden="true">
-    <div class="stars"></div>
-    <div class="stars2"></div>
-    <div class="stars3"></div>
-    <div class="shooting-stars">
-      <span style="top:6%; left:18%; animation-delay:0s"></span>
-      <span style="top:2%; left:52%; animation-delay:2s"></span>
-      <span style="top:12%; left:74%; animation-delay:4s"></span>
-      <span style="top:30%; left:88%; animation-delay:6s"></span>
-      <span style="top:20%; left:35%; animation-delay:8s"></span>
-      <span style="top:4%; left:64%; animation-delay:10s"></span>
-      <span style="top:26%; left:10%; animation-delay:12s"></span>
-      <span style="top:16%; left:45%; animation-delay:14s"></span>
-    </div>
-  </div>
+  <div class="sky" aria-hidden="true"><canvas id="starfield"></canvas></div>
 
   <section class="globe-stage" id="globe-stage">
     <div class="stage-top">
@@ -134,6 +120,89 @@ export function renderPage(data) {
 
   <div class="toast" id="toast"></div>
 
+  <script>
+    (function () {
+      var c = document.getElementById("starfield");
+      if (!c || !c.getContext) return;
+      var ctx = c.getContext("2d");
+      var DPR = Math.min(window.devicePixelRatio || 1, 2);
+      var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var W, H, stars = [], meteors = [], t = 0;
+
+      function color() {
+        var v = Math.random();
+        if (v < 0.72) return "255,255,255";
+        if (v < 0.86) return "191,215,255";
+        if (v < 0.95) return "255,228,196";
+        return "173,201,255";
+      }
+      function build() {
+        stars = [];
+        var n = Math.min(Math.round((W * H) / 2400), 900);
+        for (var i = 0; i < n; i++) {
+          var big = Math.random();
+          stars.push({
+            x: Math.random() * W, y: Math.random() * H,
+            r: big < 0.9 ? Math.random() * 0.8 + 0.25 : Math.random() * 1.5 + 0.9,
+            base: Math.random() * 0.45 + 0.35,
+            amp: Math.random() * 0.4 + 0.15,
+            ph: Math.random() * Math.PI * 2,
+            sp: Math.random() * 0.03 + 0.006,
+            col: color()
+          });
+        }
+      }
+      function resize() {
+        W = window.innerWidth; H = window.innerHeight;
+        c.style.width = W + "px"; c.style.height = H + "px";
+        c.width = Math.round(W * DPR); c.height = Math.round(H * DPR);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        build();
+      }
+      function spawnMeteor() {
+        var x = Math.random() * W * 0.7 + W * 0.2, y = Math.random() * H * 0.35;
+        var ang = Math.PI * 0.78 + (Math.random() * 0.24 - 0.12);
+        var sp = Math.random() * 5 + 7;
+        meteors.push({ x: x, y: y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 0, max: Math.random() * 35 + 45, len: Math.random() * 90 + 70 });
+      }
+      function frame() {
+        t++;
+        var g = ctx.createRadialGradient(W * 0.5, -H * 0.15, 0, W * 0.5, H * 0.35, H * 1.25);
+        g.addColorStop(0, "#141d2b"); g.addColorStop(0.45, "#0b0f18"); g.addColorStop(1, "#06080c");
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        for (var i = 0; i < stars.length; i++) {
+          var s = stars[i];
+          var a = reduce ? s.base + s.amp * 0.5 : s.base + Math.sin(t * s.sp + s.ph) * s.amp;
+          if (a < 0.04) a = 0.04; if (a > 1) a = 1;
+          if (s.r > 1.2) {
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 2.6, 0, 6.283);
+            ctx.fillStyle = "rgba(" + s.col + "," + (a * 0.10).toFixed(3) + ")"; ctx.fill();
+          }
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283);
+          ctx.fillStyle = "rgba(" + s.col + "," + a.toFixed(3) + ")"; ctx.fill();
+        }
+        if (!reduce) {
+          if (Math.random() < 0.012 && meteors.length < 2) spawnMeteor();
+          for (var j = meteors.length - 1; j >= 0; j--) {
+            var m = meteors[j]; m.life++; m.x += m.vx; m.y += m.vy;
+            var p = m.life / m.max, al = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
+            if (al < 0) al = 0;
+            var d = Math.hypot(m.vx, m.vy), tx = m.x - (m.vx / d) * m.len, ty = m.y - (m.vy / d) * m.len;
+            var lg = ctx.createLinearGradient(m.x, m.y, tx, ty);
+            lg.addColorStop(0, "rgba(255,255,255," + al.toFixed(3) + ")");
+            lg.addColorStop(1, "rgba(255,255,255,0)");
+            ctx.strokeStyle = lg; ctx.lineWidth = 2; ctx.lineCap = "round";
+            ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tx, ty); ctx.stroke();
+            ctx.beginPath(); ctx.arc(m.x, m.y, 1.7, 0, 6.283); ctx.fillStyle = "rgba(255,255,255," + al.toFixed(3) + ")"; ctx.fill();
+            if (m.life >= m.max || m.x < -120 || m.y > H + 120) meteors.splice(j, 1);
+          }
+        }
+        requestAnimationFrame(frame);
+      }
+      window.addEventListener("resize", resize);
+      resize(); frame();
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
