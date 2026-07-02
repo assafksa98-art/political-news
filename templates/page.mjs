@@ -1,4 +1,4 @@
-// قالب HTML عربي RTL مع كرة أرضية تفاعلية. renderPage تُعيد الصفحة كاملة.
+// قالب HTML عربي RTL: كرة أرضية ملء الشاشة + عرض جوي لعاصمة الدولة عند الضغط.
 
 function escapeHtml(s = "") {
   return String(s)
@@ -72,21 +72,9 @@ function renderCategory(cat) {
 }
 
 export function renderPage(data) {
-  const visible = data.categories.filter((c) => c.featured || c.items.length);
-  const nav = visible
-    .map(
-      (c) =>
-        `<a href="#${escapeHtml(c.id)}">${flagImgs(c.flags)}<span>${escapeHtml(c.title)}</span></a>`
-    )
-    .join("");
   const sections = data.categories.map(renderCategory).join("");
-
   const catTitles = {};
-  const present = [];
-  for (const c of data.categories) {
-    catTitles[c.id] = c.title;
-    if (c.featured || c.items.length) present.push(c.id);
-  }
+  for (const c of data.categories) catTitles[c.id] = c.title;
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -98,6 +86,7 @@ export function renderPage(data) {
   <meta name="description" content="أبرز الأخبار السياسية من صحف عالمية، يتحدّث تلقائياً" />
   <link rel="preconnect" href="https://flagcdn.com" />
   <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -114,106 +103,143 @@ export function renderPage(data) {
     </div>
   </div>
 
-  <header class="site-header">
-    <div class="wrap">
-      <p class="updated"><span class="dot"></span> آخر تحديث: ${escapeHtml(data.updatedAt)} (توقيت السعودية)</p>
+  <section class="globe-stage" id="globe-stage">
+    <div class="stage-top">
+      <span class="updated"><span class="dot"></span> آخر تحديث: ${escapeHtml(data.updatedAt)}</span>
+      <span class="stage-hint">اضغط على دولة لعرض عاصمتها وأخبارها</span>
     </div>
-  </header>
-
-  <section class="globe-hero" id="globe-hero">
-    <p class="globe-hint">اضغط على <b>دولة</b> في الكرة الأرضية لعرض أخبارها</p>
     <div id="globe"><div class="globe-loading">جارٍ تحميل الكرة الأرضية…</div></div>
-    <nav class="nav wrap">${nav}</nav>
+    <button class="scroll-down" id="scrollDown" type="button" aria-label="عرض كل الأخبار">كل الأخبار ▾</button>
   </section>
 
-  <main class="wrap">
+  <div class="city-view" id="cityView" aria-hidden="true">
+    <div id="cityMap"></div>
+    <button class="back-btn" id="backBtn" type="button">◀ الكرة الأرضية</button>
+    <div class="city-panel">
+      <div class="city-name" id="cityName"></div>
+      <a class="city-headline" id="cityHeadline" href="#" target="_blank" rel="noopener noreferrer"></a>
+      <div class="city-more" id="cityMore"></div>
+    </div>
+  </div>
+
+  <main class="wrap" id="allNews">
     ${sections}
   </main>
   <footer class="site-footer">
-    <div class="wrap">
-      <p>يتم التحديث تلقائياً عدة مرات يومياً. الأخبار من مصادرها الأصلية عبر خلاصات RSS.</p>
-    </div>
+    <div class="wrap"><p>يتم التحديث تلقائياً عدة مرات يومياً. الأخبار من مصادرها الأصلية عبر خلاصات RSS.</p></div>
   </footer>
 
   <div class="toast" id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    window.__NEWS__ = ${JSON.stringify(data.newsByCat)};
+    window.__CAT_TITLES__ = ${JSON.stringify(catTitles)};
+  </script>
   <script>
     (function () {
-      var ISO_CAT = { IR:"iran-us", US:"usa", SA:"saudi", AE:"gulf", QA:"gulf", KW:"gulf", BH:"gulf", OM:"gulf", UA:"ukraine", RU:"russia", CN:"china" };
-      var NAME_CAT = { "Iran":"iran-us", "United States of America":"usa", "United States":"usa", "Saudi Arabia":"saudi", "United Arab Emirates":"gulf", "Qatar":"gulf", "Kuwait":"gulf", "Bahrain":"gulf", "Oman":"gulf", "Ukraine":"ukraine", "Russia":"russia", "China":"china" };
-      var CAT_TITLES = ${JSON.stringify(catTitles)};
-      var PRESENT = new Set(${JSON.stringify(present)});
-      var el = document.getElementById("globe");
-      var hero = document.getElementById("globe-hero");
-      var toastEl = document.getElementById("toast");
-      var toastTimer;
+      var NEWS = window.__NEWS__, CAT_TITLES = window.__CAT_TITLES__;
+      // ISO / اسم الدولة -> {الفئة، إحداثيات العاصمة، اسم العاصمة}
+      var INFO = {
+        IR: { cat:"iran-us", lat:35.6892, lng:51.3890, cap:"طهران" },
+        US: { cat:"usa",     lat:38.9072, lng:-77.0369, cap:"واشنطن" },
+        SA: { cat:"saudi",   lat:24.7136, lng:46.6753, cap:"الرياض" },
+        AE: { cat:"gulf",    lat:24.4539, lng:54.3773, cap:"أبوظبي" },
+        QA: { cat:"gulf",    lat:25.2867, lng:51.5310, cap:"الدوحة" },
+        KW: { cat:"gulf",    lat:29.3759, lng:47.9774, cap:"الكويت" },
+        BH: { cat:"gulf",    lat:26.2285, lng:50.5860, cap:"المنامة" },
+        OM: { cat:"gulf",    lat:23.5880, lng:58.3829, cap:"مسقط" },
+        UA: { cat:"ukraine", lat:50.4501, lng:30.5234, cap:"كييف" },
+        RU: { cat:"russia",  lat:55.7558, lng:37.6173, cap:"موسكو" },
+        CN: { cat:"china",   lat:39.9042, lng:116.4074, cap:"بكين" }
+      };
+      var NAME_ISO = {
+        "Iran":"IR","United States of America":"US","United States":"US","Saudi Arabia":"SA",
+        "United Arab Emirates":"AE","Qatar":"QA","Kuwait":"KW","Bahrain":"BH","Oman":"OM",
+        "Ukraine":"UA","Russia":"RU","China":"CN"
+      };
 
-      function toast(msg) {
-        toastEl.textContent = msg;
-        toastEl.classList.add("show");
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
-      }
-      function catOf(p) { return ISO_CAT[p.ISO_A2] || NAME_CAT[p.ADMIN] || NAME_CAT[p.NAME] || null; }
-      function hasNews(p) { var c = catOf(p); return !!c && PRESENT.has(c); }
-      function goTo(cat) {
-        var t = document.getElementById(cat);
-        if (t) {
-          t.scrollIntoView({ behavior: "smooth", block: "start" });
-          t.classList.add("flash");
-          setTimeout(function () { t.classList.remove("flash"); }, 1600);
-        } else {
-          toast("لا توجد أخبار حالياً عن " + (CAT_TITLES[cat] || "هذه الدولة"));
-        }
-      }
-      function size() {
-        var w = el.clientWidth || 800;
-        var h = Math.min(Math.max(Math.round(w * 0.62), 300), 520);
-        return { w: w, h: h };
-      }
+      var toastEl = document.getElementById("toast"), toastTimer;
+      function toast(m){ toastEl.textContent=m; toastEl.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(function(){toastEl.classList.remove("show");},2600); }
 
-      if (typeof Globe === "undefined") { hero.style.display = "none"; return; }
+      var el = document.getElementById("globe"), stage = document.getElementById("globe-stage");
+      var cityView = document.getElementById("cityView");
+      var world = null, leaf = null, leafMarker = null;
+
+      function infoOf(p){ return INFO[p.ISO_A2] || INFO[NAME_ISO[p.ADMIN]] || INFO[NAME_ISO[p.NAME]] || null; }
+      function has(p){ var i=infoOf(p); return !!i && NEWS[i.cat] && NEWS[i.cat].length; }
+
+      document.getElementById("scrollDown").addEventListener("click", function(){
+        document.getElementById("allNews").scrollIntoView({behavior:"smooth"});
+      });
+
+      // === العرض الجوي للعاصمة (Leaflet + صور أقمار Esri) ===
+      function ensureLeaf(){
+        if (leaf) return leaf;
+        leaf = L.map("cityMap", { zoomControl:false, attributionControl:false });
+        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 }).addTo(leaf);
+        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 }).addTo(leaf);
+        return leaf;
+      }
+      function openCity(info){
+        var list = NEWS[info.cat] || [];
+        cityView.classList.add("show");
+        cityView.setAttribute("aria-hidden","false");
+        var m = ensureLeaf();
+        setTimeout(function(){ m.invalidateSize(); m.setView([info.lat, info.lng], 14, { animate:false }); if(leafMarker) m.removeLayer(leafMarker); leafMarker = L.marker([info.lat, info.lng]).addTo(m).bindPopup(info.cap).openPopup(); }, 60);
+        document.getElementById("cityName").textContent = info.cap + " · " + (CAT_TITLES[info.cat]||"");
+        var head = document.getElementById("cityHeadline");
+        if (list[0]) { head.textContent = list[0].title; head.href = list[0].link; head.style.display="block"; head.setAttribute("dir","auto"); }
+        else head.style.display="none";
+        var more = document.getElementById("cityMore");
+        more.innerHTML = list.slice(1,5).map(function(n){
+          return '<a href="'+n.link+'" target="_blank" rel="noopener noreferrer" dir="auto">'+ n.title.replace(/</g,"&lt;") +' <span>· '+ n.source +'</span></a>';
+        }).join("");
+      }
+      function closeCity(){
+        cityView.classList.remove("show");
+        cityView.setAttribute("aria-hidden","true");
+        if (world) { world.pointOfView({ lat:20, lng:20, altitude:2.4 }, 1200); world.controls().autoRotate = true; }
+      }
+      document.getElementById("backBtn").addEventListener("click", closeCity);
+      document.addEventListener("keydown", function(e){ if(e.key==="Escape" && cityView.classList.contains("show")) closeCity(); });
+
+      // === الكرة الأرضية ===
+      function size(){ var w = el.clientWidth||800; var h = Math.max(Math.min(window.innerHeight - 70, 900), 360); return { w:w, h:h }; }
+      if (typeof Globe === "undefined") { el.innerHTML = "<div class='globe-loading'>تعذّر تحميل الكرة — مرّر للأسفل لعرض الأخبار.</div>"; return; }
 
       fetch("https://cdn.jsdelivr.net/gh/vasturiano/globe.gl/example/datasets/ne_110m_admin_0_countries.geojson")
-        .then(function (r) { return r.json(); })
-        .then(function (geo) {
+        .then(function(r){ return r.json(); })
+        .then(function(geo){
           el.innerHTML = "";
           var sz = size();
-          var world = Globe()(el)
+          world = Globe()(el)
             .width(sz.w).height(sz.h)
             .backgroundColor("rgba(0,0,0,0)")
-            .showAtmosphere(true)
-            .atmosphereColor("#4a9eda")
+            .showAtmosphere(true).atmosphereColor("#4a9eda")
             .globeImageUrl("//unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
             .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
             .polygonsData(geo.features)
-            .polygonAltitude(function (f) { return hasNews(f.properties) ? 0.07 : 0.012; })
-            .polygonCapColor(function (f) { return hasNews(f.properties) ? "rgba(240,136,62,0.85)" : (catOf(f.properties) ? "rgba(240,136,62,0.30)" : "rgba(255,255,255,0.05)"); })
-            .polygonSideColor(function () { return "rgba(240,136,62,0.15)"; })
-            .polygonStrokeColor(function () { return "rgba(255,255,255,0.25)"; })
-            .polygonLabel(function (f) {
-              var c = catOf(f.properties);
-              var tip = c ? (PRESENT.has(c) ? "اضغط لعرض الأخبار" : "لا توجد أخبار حالياً") : "";
-              return "<div style='font-family:sans-serif;text-align:center'><b>" + (f.properties.ADMIN || f.properties.NAME || "") + "</b><br/>" + tip + "</div>";
-            })
-            .onPolygonClick(function (f) {
-              var c = catOf(f.properties);
-              if (c) goTo(c);
-              else toast("لا توجد أخبار مخصصة لهذه الدولة");
+            .polygonAltitude(function(f){ return has(f.properties) ? 0.08 : 0.012; })
+            .polygonCapColor(function(f){ return has(f.properties) ? "rgba(240,136,62,0.9)" : (infoOf(f.properties) ? "rgba(240,136,62,0.3)" : "rgba(255,255,255,0.05)"); })
+            .polygonSideColor(function(){ return "rgba(240,136,62,0.15)"; })
+            .polygonStrokeColor(function(){ return "rgba(255,255,255,0.25)"; })
+            .polygonLabel(function(f){ var i=infoOf(f.properties); return "<div style='font-family:sans-serif;text-align:center;color:#fff'><b>"+(f.properties.ADMIN||"")+"</b><br/>"+(i && NEWS[i.cat] && NEWS[i.cat].length ? "اضغط لعرض العاصمة والأخبار" : "لا توجد أخبار")+"</div>"; })
+            .onPolygonClick(function(f){
+              var info = infoOf(f.properties);
+              if(!info){ toast("لا توجد أخبار مخصصة لهذه الدولة"); return; }
+              if(!(NEWS[info.cat] && NEWS[info.cat].length)){ toast("لا توجد أخبار حالياً عن "+(CAT_TITLES[info.cat]||"هذه الدولة")); return; }
+              world.controls().autoRotate = false;
+              world.pointOfView({ lat:info.lat, lng:info.lng, altitude:0.6 }, 1300);
+              setTimeout(function(){ openCity(info); }, 1250);
             });
 
-          var controls = world.controls();
-          controls.autoRotate = true;
-          controls.autoRotateSpeed = 0.55;
-          controls.enableZoom = false;
-
-          window.addEventListener("resize", function () {
-            var s = size();
-            world.width(s.w).height(s.h);
-          });
+          world.pointOfView({ lat:20, lng:20, altitude:2.4 }, 0);
+          var c = world.controls(); c.autoRotate = true; c.autoRotateSpeed = 0.5; c.enableZoom = true; c.minDistance = 160;
+          window.addEventListener("resize", function(){ var s=size(); world.width(s.w).height(s.h); });
         })
-        .catch(function () { hero.style.display = "none"; });
+        .catch(function(){ el.innerHTML = "<div class='globe-loading'>تعذّر تحميل الكرة — مرّر للأسفل لعرض الأخبار.</div>"; });
     })();
   </script>
 </body>
