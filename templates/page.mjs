@@ -86,7 +86,7 @@ export function renderPage(data) {
   <meta name="description" content="أبرز الأخبار السياسية من صحف عالمية، يتحدّث تلقائياً" />
   <link rel="preconnect" href="https://flagcdn.com" />
   <link rel="preconnect" href="https://unpkg.com" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -103,6 +103,7 @@ export function renderPage(data) {
 
   <div class="city-view" id="cityView" aria-hidden="true">
     <div id="cityMap"></div>
+    <div class="clouds" id="clouds" aria-hidden="true"></div>
     <button class="back-btn" id="backBtn" type="button">◀ الكرة الأرضية</button>
     <div class="city-panel">
       <div class="city-name" id="cityName"></div>
@@ -204,7 +205,7 @@ export function renderPage(data) {
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script>
     window.__NEWS__ = ${JSON.stringify(data.newsByCat)};
     window.__CAT_TITLES__ = ${JSON.stringify(catTitles)};
@@ -237,7 +238,11 @@ export function renderPage(data) {
 
       var el = document.getElementById("globe"), stage = document.getElementById("globe-stage");
       var cityView = document.getElementById("cityView");
-      var world = null, leaf = null, leafMarker = null;
+      var cloudsEl = document.getElementById("clouds");
+      var world = null, map = null;
+
+      function showClouds(){ cloudsEl.style.transition = "none"; cloudsEl.style.opacity = "1"; cloudsEl.style.transform = "scale(1.05)"; }
+      function hideClouds(){ cloudsEl.style.transition = "opacity 1.4s ease, transform 1.9s ease"; cloudsEl.style.opacity = "0"; cloudsEl.style.transform = "scale(2.1)"; }
 
       function infoOf(p){ return INFO[p.ISO_A2] || INFO[NAME_ISO[p.ADMIN]] || INFO[NAME_ISO[p.NAME]] || null; }
       function has(p){ var i=infoOf(p); return !!i && NEWS[i.cat] && NEWS[i.cat].length; }
@@ -250,20 +255,50 @@ export function renderPage(data) {
         else window.scrollTo({ top:0, behavior:"smooth" });
       });
 
-      // === العرض الجوي للعاصمة (Leaflet + صور أقمار Esri) ===
-      function ensureLeaf(){
-        if (leaf) return leaf;
-        leaf = L.map("cityMap", { zoomControl:false, attributionControl:false });
-        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 }).addTo(leaf);
-        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 }).addTo(leaf);
-        return leaf;
+      // === العرض الجوي 3D للعاصمة (MapLibre + أقمار Esri + مباني OpenFreeMap) ===
+      function mapStyle(){
+        return {
+          version: 8,
+          sources: {
+            sat: { type:"raster", tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize:256, maxzoom:19, attribution:"Esri" },
+            ofm: { type:"vector", url:"https://tiles.openfreemap.org/planet" }
+          },
+          layers: [
+            { id:"sat", type:"raster", source:"sat" },
+            { id:"buildings3d", type:"fill-extrusion", source:"ofm", "source-layer":"building", minzoom:13,
+              filter:["!=", ["get","hide_3d"], true],
+              paint:{
+                "fill-extrusion-color":"#c7d0dc",
+                "fill-extrusion-height":["coalesce",["get","render_height"],["get","height"],10],
+                "fill-extrusion-base":["coalesce",["get","render_min_height"],["get","min_height"],0],
+                "fill-extrusion-opacity":0.85
+              }
+            }
+          ]
+        };
+      }
+      function ensureMap(info){
+        if (map) return map;
+        map = new maplibregl.Map({
+          container:"cityMap", style:mapStyle(),
+          center:[info.lng, info.lat], zoom:11, pitch:0, bearing:0,
+          attributionControl:false, dragRotate:true
+        });
+        map.on("error", function(){});
+        return map;
+      }
+      function flyToCapital(m, info){
+        m.jumpTo({ center:[info.lng, info.lat], zoom:11.5, pitch:0, bearing:0 });
+        m.flyTo({ center:[info.lng, info.lat], zoom:16.6, pitch:62, bearing:-18, duration:3000, curve:1.5, essential:true });
       }
       function openCity(info){
         var list = NEWS[info.cat] || [];
         cityView.classList.add("show");
         cityView.setAttribute("aria-hidden","false");
-        var m = ensureLeaf();
-        setTimeout(function(){ m.invalidateSize(); m.setView([info.lat, info.lng], 14, { animate:false }); if(leafMarker) m.removeLayer(leafMarker); leafMarker = L.marker([info.lat, info.lng]).addTo(m).bindPopup(info.cap).openPopup(); }, 60);
+        showClouds();
+        var m = ensureMap(info);
+        setTimeout(function(){ m.resize(); flyToCapital(m, info); }, 60);
+        setTimeout(hideClouds, 1200);
         document.getElementById("cityName").textContent = info.cap + " · " + (CAT_TITLES[info.cat]||"");
         var head = document.getElementById("cityHeadline");
         if (list[0]) { head.textContent = list[0].title; head.href = list[0].link; head.style.display="block"; head.setAttribute("dir","auto"); }
