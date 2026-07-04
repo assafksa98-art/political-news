@@ -128,62 +128,92 @@ export function renderPage(data) {
       var ctx = c.getContext("2d");
       var DPR = Math.min(window.devicePixelRatio || 1, 2);
       var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      var W, H, stars = [], meteors = [], t = 0;
+      var bg = document.createElement("canvas"), bx = bg.getContext("2d");
+      var W, H, stars = [], meteors = [], t = 0, band = { ang: -0.62 };
 
+      function randn() { return (Math.random() + Math.random() + Math.random() - 1.5); }
       function color() {
         var v = Math.random();
-        if (v < 0.72) return "255,255,255";
-        if (v < 0.86) return "191,215,255";
-        if (v < 0.95) return "255,228,196";
-        return "173,201,255";
+        if (v < 0.70) return "255,255,255";
+        if (v < 0.84) return "201,220,255";
+        if (v < 0.93) return "255,233,208";
+        return "255,212,188";
+      }
+      function pushStar(x, y, faint) {
+        var big = Math.random();
+        var r = faint ? Math.random() * 0.5 + 0.12 : (big < 0.93 ? Math.random() * 0.7 + 0.22 : Math.random() * 1.7 + 0.95);
+        stars.push({
+          x: x, y: y, r: r,
+          base: (faint ? 0.12 : 0.28) + Math.random() * 0.4,
+          amp: (r > 1.2 ? 0.22 : 0.07) + Math.random() * 0.25,
+          ph: Math.random() * 6.283, sp: Math.random() * 0.026 + 0.004, col: color()
+        });
       }
       function build() {
-        stars = [];
-        var n = Math.min(Math.round((W * H) / 2400), 900);
-        for (var i = 0; i < n; i++) {
-          var big = Math.random();
-          stars.push({
-            x: Math.random() * W, y: Math.random() * H,
-            r: big < 0.9 ? Math.random() * 0.8 + 0.25 : Math.random() * 1.5 + 0.9,
-            base: Math.random() * 0.45 + 0.35,
-            amp: Math.random() * 0.4 + 0.15,
-            ph: Math.random() * Math.PI * 2,
-            sp: Math.random() * 0.03 + 0.006,
-            col: color()
-          });
+        stars = []; band.cx = W * 0.5; band.cy = H * 0.42;
+        var n = Math.min(Math.round((W * H) / 3000), 620);
+        for (var i = 0; i < n; i++) pushStar(Math.random() * W, Math.random() * H, false);
+        var ca = Math.cos(band.ang), sa = Math.sin(band.ang);
+        var bn = Math.min(Math.round((W * H) / 1700), 1100);
+        for (var j = 0; j < bn; j++) {
+          var along = (Math.random() - 0.5) * W * 1.6, across = randn() * H * 0.08;
+          pushStar(band.cx + ca * along - sa * across, band.cy + sa * along + ca * across, true);
         }
+      }
+      function renderBg() {
+        bg.width = Math.round(W * DPR); bg.height = Math.round(H * DPR);
+        bx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        var g = bx.createRadialGradient(W * 0.5, -H * 0.15, 0, W * 0.5, H * 0.35, H * 1.25);
+        g.addColorStop(0, "#121a28"); g.addColorStop(0.45, "#0a0e16"); g.addColorStop(1, "#05070b");
+        bx.fillStyle = g; bx.fillRect(0, 0, W, H);
+        bx.globalCompositeOperation = "lighter";
+        var ca = Math.cos(band.ang), sa = Math.sin(band.ang);
+        for (var s = -3; s <= 3; s++) {
+          var px = band.cx + ca * (s * W * 0.17), py = band.cy + sa * (s * W * 0.17);
+          var rg = bx.createRadialGradient(px, py, 0, px, py, Math.min(W, H) * 0.34);
+          rg.addColorStop(0, "rgba(150,172,225,0.05)"); rg.addColorStop(1, "rgba(150,172,225,0)");
+          bx.fillStyle = rg; bx.fillRect(0, 0, W, H);
+        }
+        var neb = [["120,150,255", 0.05], ["175,130,255", 0.045], ["90,200,220", 0.038]];
+        for (var k = 0; k < neb.length; k++) {
+          var nx = band.cx + (Math.random() - 0.4) * W * 0.7, ny = band.cy + (Math.random() - 0.5) * H * 0.4;
+          var ng = bx.createRadialGradient(nx, ny, 0, nx, ny, Math.min(W, H) * 0.3);
+          ng.addColorStop(0, "rgba(" + neb[k][0] + "," + neb[k][1] + ")"); ng.addColorStop(1, "rgba(" + neb[k][0] + ",0)");
+          bx.fillStyle = ng; bx.fillRect(0, 0, W, H);
+        }
+        bx.globalCompositeOperation = "source-over";
       }
       function resize() {
         W = window.innerWidth; H = window.innerHeight;
         c.style.width = W + "px"; c.style.height = H + "px";
         c.width = Math.round(W * DPR); c.height = Math.round(H * DPR);
         ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-        build();
+        build(); renderBg();
       }
       function spawnMeteor() {
         var x = Math.random() * W * 0.7 + W * 0.2, y = Math.random() * H * 0.35;
         var ang = Math.PI * 0.78 + (Math.random() * 0.24 - 0.12);
         var sp = Math.random() * 5 + 7;
-        meteors.push({ x: x, y: y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 0, max: Math.random() * 35 + 45, len: Math.random() * 90 + 70 });
+        meteors.push({ x: x, y: y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 0, max: Math.random() * 35 + 45, len: Math.random() * 100 + 80 });
       }
       function frame() {
         t++;
-        var g = ctx.createRadialGradient(W * 0.5, -H * 0.15, 0, W * 0.5, H * 0.35, H * 1.25);
-        g.addColorStop(0, "#141d2b"); g.addColorStop(0.45, "#0b0f18"); g.addColorStop(1, "#06080c");
-        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.drawImage(bg, 0, 0);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
         for (var i = 0; i < stars.length; i++) {
           var s = stars[i];
           var a = reduce ? s.base + s.amp * 0.5 : s.base + Math.sin(t * s.sp + s.ph) * s.amp;
-          if (a < 0.04) a = 0.04; if (a > 1) a = 1;
-          if (s.r > 1.2) {
-            ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 2.6, 0, 6.283);
-            ctx.fillStyle = "rgba(" + s.col + "," + (a * 0.10).toFixed(3) + ")"; ctx.fill();
+          if (a < 0.03) a = 0.03; if (a > 1) a = 1;
+          if (s.r > 1.15) {
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 2.8, 0, 6.283);
+            ctx.fillStyle = "rgba(" + s.col + "," + (a * 0.09).toFixed(3) + ")"; ctx.fill();
           }
           ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283);
           ctx.fillStyle = "rgba(" + s.col + "," + a.toFixed(3) + ")"; ctx.fill();
         }
         if (!reduce) {
-          if (Math.random() < 0.012 && meteors.length < 2) spawnMeteor();
+          if (Math.random() < 0.01 && meteors.length < 2) spawnMeteor();
           for (var j = meteors.length - 1; j >= 0; j--) {
             var m = meteors[j]; m.life++; m.x += m.vx; m.y += m.vy;
             var p = m.life / m.max, al = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
@@ -195,7 +225,7 @@ export function renderPage(data) {
             ctx.strokeStyle = lg; ctx.lineWidth = 2; ctx.lineCap = "round";
             ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tx, ty); ctx.stroke();
             ctx.beginPath(); ctx.arc(m.x, m.y, 1.7, 0, 6.283); ctx.fillStyle = "rgba(255,255,255," + al.toFixed(3) + ")"; ctx.fill();
-            if (m.life >= m.max || m.x < -120 || m.y > H + 120) meteors.splice(j, 1);
+            if (m.life >= m.max || m.x < -140 || m.y > H + 140) meteors.splice(j, 1);
           }
         }
         requestAnimationFrame(frame);
@@ -259,6 +289,7 @@ export function renderPage(data) {
       function mapStyle(){
         return {
           version: 8,
+          light: { anchor:"viewport", color:"#ffffff", intensity:0.45, position:[1.2, 200, 28] },
           sources: {
             sat: { type:"raster", tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize:256, maxzoom:19, attribution:"Esri" },
             ofm: { type:"vector", url:"https://tiles.openfreemap.org/planet" }
@@ -268,10 +299,14 @@ export function renderPage(data) {
             { id:"buildings3d", type:"fill-extrusion", source:"ofm", "source-layer":"building", minzoom:13,
               filter:["!=", ["get","hide_3d"], true],
               paint:{
-                "fill-extrusion-color":"#c7d0dc",
-                "fill-extrusion-height":["coalesce",["get","render_height"],["get","height"],10],
+                "fill-extrusion-color":[
+                  "interpolate", ["linear"], ["coalesce", ["get","render_height"], 8],
+                  0, "#e7e9ee", 25, "#d3d8e0", 70, "#bac1cd", 150, "#99a2b2", 320, "#7c8797"
+                ],
+                "fill-extrusion-height":["coalesce",["get","render_height"],["get","height"],8],
                 "fill-extrusion-base":["coalesce",["get","render_min_height"],["get","min_height"],0],
-                "fill-extrusion-opacity":0.85
+                "fill-extrusion-opacity":0.95,
+                "fill-extrusion-vertical-gradient":true
               }
             }
           ]
