@@ -300,8 +300,11 @@ export function renderPage(data) {
               filter:["!=", ["get","hide_3d"], true],
               paint:{
                 "fill-extrusion-color":[
-                  "interpolate", ["linear"], ["coalesce", ["get","render_height"], 8],
-                  0, "#e7e9ee", 25, "#d3d8e0", 70, "#bac1cd", 150, "#99a2b2", 320, "#7c8797"
+                  "coalesce",
+                  ["get","colour"],
+                  ["interpolate", ["linear"], ["coalesce", ["get","render_height"], 10],
+                    3, "#bcae9e", 10, "#aeb0ad", 22, "#9aa1a8", 45, "#89929e", 90, "#78828f", 200, "#66707e"
+                  ]
                 ],
                 "fill-extrusion-height":["coalesce",["get","render_height"],["get","height"],8],
                 "fill-extrusion-base":["coalesce",["get","render_min_height"],["get","min_height"],0],
