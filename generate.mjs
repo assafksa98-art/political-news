@@ -219,6 +219,9 @@ async function main() {
   await writeFile(join(DIST, "index.html"), html, "utf8");
   await copyFile(join(__dirname, "public", "styles.css"), join(DIST, "styles.css"));
   await copyFile(join(__dirname, "public", "robots.txt"), join(DIST, "robots.txt"));
+  for (const f of ["manifest.json", "icon.svg", "sw.js"]) {
+    await copyFile(join(__dirname, "public", f), join(DIST, f));
+  }
 
   console.log(`\nتم البناء: ${all.length} خبراً سياسياً (أبرزها في كل فئة) في dist/index.html`);
 }

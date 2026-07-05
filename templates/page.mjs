@@ -84,6 +84,13 @@ export function renderPage(data) {
   <meta name="robots" content="noindex, nofollow" />
   <title>التقرير السياسي اليومي</title>
   <meta name="description" content="أبرز الأخبار السياسية من صحف عالمية، يتحدّث تلقائياً" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d1117" />
+  <link rel="icon" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="أخبار سياسية" />
   <link rel="preconnect" href="https://flagcdn.com" />
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
@@ -91,6 +98,14 @@ export function renderPage(data) {
 </head>
 <body>
   <div class="sky" aria-hidden="true"><canvas id="starfield"></canvas></div>
+
+  <div class="intro" id="intro">
+    <div class="intro-inner">
+      <div class="intro-globe"></div>
+      <h1 class="intro-title">التقرير السياسي اليومي</h1>
+      <p class="intro-sub">جارٍ تحميل العالم…</p>
+    </div>
+  </div>
 
   <section class="globe-stage" id="globe-stage">
     <div class="stage-top">
@@ -107,6 +122,7 @@ export function renderPage(data) {
     <button class="back-btn" id="backBtn" type="button">◀ الكرة الأرضية</button>
     <div class="city-panel">
       <div class="city-name" id="cityName"></div>
+      <div class="city-weather" id="cityWeather"></div>
       <a class="city-headline" id="cityHeadline" href="#" target="_blank" rel="noopener noreferrer"></a>
       <div class="city-more" id="cityMore"></div>
     </div>
@@ -234,6 +250,17 @@ export function renderPage(data) {
       resize(); frame();
     })();
   </script>
+  <script>
+    (function(){
+      var intro = document.getElementById("intro");
+      function hide(){ if(intro){ intro.classList.add("hide"); } }
+      window.addEventListener("load", function(){ setTimeout(hide, 1000); });
+      setTimeout(hide, 4000);
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+      }
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script>
@@ -329,11 +356,35 @@ export function renderPage(data) {
         m.jumpTo({ center:[info.lng, info.lat], zoom:11.5, pitch:0, bearing:0 });
         m.flyTo({ center:[info.lng, info.lat], zoom:16.6, pitch:62, bearing:-18, duration:3000, curve:1.5, essential:true });
       }
+      function weatherDesc(code){
+        if(code===0) return ["☀️","صافٍ"];
+        if(code<=3) return ["⛅","غائم جزئياً"];
+        if(code===45||code===48) return ["🌫️","ضباب"];
+        if(code>=51&&code<=57) return ["🌦️","رذاذ"];
+        if(code>=61&&code<=67) return ["🌧️","مطر"];
+        if(code>=71&&code<=77) return ["❄️","ثلج"];
+        if(code>=80&&code<=82) return ["🌦️","زخات مطر"];
+        if(code>=95) return ["⛈️","عاصفة رعدية"];
+        return ["🌡️",""];
+      }
+      function fetchWeather(info){
+        var wEl = document.getElementById("cityWeather");
+        wEl.textContent = "…";
+        fetch("https://api.open-meteo.com/v1/forecast?latitude="+info.lat+"&longitude="+info.lng+"&current=temperature_2m,weather_code&timezone=auto")
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            var cur = d.current || {}; var wd = weatherDesc(cur.weather_code);
+            var time = (cur.time || "").split("T")[1] || "";
+            wEl.innerHTML = wd[0] + " " + Math.round(cur.temperature_2m) + "°م · " + wd[1] + " · 🕐 " + time + " محلياً";
+          })
+          .catch(function(){ wEl.textContent = ""; });
+      }
       function openCity(info){
         var list = NEWS[info.cat] || [];
         cityView.classList.add("show");
         cityView.setAttribute("aria-hidden","false");
         showClouds();
+        fetchWeather(info);
         var m = ensureMap(info);
         setTimeout(function(){ m.resize(); flyToCapital(m, info); }, 60);
         setTimeout(hideClouds, 1200);
@@ -354,6 +405,14 @@ export function renderPage(data) {
       document.getElementById("backBtn").addEventListener("click", closeCity);
       document.addEventListener("keydown", function(e){ if(e.key==="Escape" && cityView.classList.contains("show")) closeCity(); });
 
+      function enterCountry(info){
+        if(!info){ toast("لا توجد أخبار مخصصة لهذه الدولة"); return; }
+        if(!(NEWS[info.cat] && NEWS[info.cat].length)){ toast("لا توجد أخبار حالياً عن "+(CAT_TITLES[info.cat]||"هذه الدولة")); return; }
+        world.controls().autoRotate = false;
+        world.pointOfView({ lat:info.lat, lng:info.lng, altitude:0.6 }, 1300);
+        setTimeout(function(){ openCity(info); }, 1250);
+      }
+
       // === الكرة الأرضية ===
       function size(){ var w = el.clientWidth||800; var h = Math.max(Math.min(window.innerHeight - 70, 900), 360); return { w:w, h:h }; }
       if (typeof Globe === "undefined") { el.innerHTML = "<div class='globe-loading'>تعذّر تحميل الكرة — مرّر للأسفل لعرض الأخبار.</div>"; return; }
@@ -363,6 +422,17 @@ export function renderPage(data) {
         .then(function(geo){
           el.innerHTML = "";
           var sz = size();
+          var capPoints = [];
+          Object.keys(INFO).forEach(function(iso){
+            var inf = INFO[iso];
+            if (NEWS[inf.cat] && NEWS[inf.cat].length) capPoints.push({ lat:inf.lat, lng:inf.lng, info:inf });
+          });
+          var arcs = [];
+          [["IR","US"],["RU","UA"],["CN","US"]].forEach(function(pr){
+            var a=INFO[pr[0]], b=INFO[pr[1]];
+            if (a && b && NEWS[a.cat] && NEWS[a.cat].length && NEWS[b.cat] && NEWS[b.cat].length)
+              arcs.push({ startLat:a.lat, startLng:a.lng, endLat:b.lat, endLng:b.lng });
+          });
           world = Globe()(el)
             .width(sz.w).height(sz.h)
             .backgroundColor("rgba(0,0,0,0)")
@@ -375,14 +445,20 @@ export function renderPage(data) {
             .polygonSideColor(function(f){ return has(f.properties) ? "rgba(74,158,218,0.28)" : "rgba(255,255,255,0)"; })
             .polygonStrokeColor(function(f){ return has(f.properties) ? "rgba(140,200,245,0.95)" : "rgba(255,255,255,0.10)"; })
             .polygonLabel(function(f){ var i=infoOf(f.properties); return "<div style='font-family:sans-serif;text-align:center;color:#fff'><b>"+(f.properties.ADMIN||"")+"</b><br/>"+(i && NEWS[i.cat] && NEWS[i.cat].length ? "اضغط لعرض العاصمة والأخبار" : "لا توجد أخبار")+"</div>"; })
-            .onPolygonClick(function(f){
-              var info = infoOf(f.properties);
-              if(!info){ toast("لا توجد أخبار مخصصة لهذه الدولة"); return; }
-              if(!(NEWS[info.cat] && NEWS[info.cat].length)){ toast("لا توجد أخبار حالياً عن "+(CAT_TITLES[info.cat]||"هذه الدولة")); return; }
-              world.controls().autoRotate = false;
-              world.pointOfView({ lat:info.lat, lng:info.lng, altitude:0.6 }, 1300);
-              setTimeout(function(){ openCity(info); }, 1250);
-            });
+            .onPolygonClick(function(f){ enterCountry(infoOf(f.properties)); })
+            .pointsData(capPoints)
+            .pointLat("lat").pointLng("lng")
+            .pointColor(function(){ return "#9fd8ff"; })
+            .pointAltitude(0.012).pointRadius(0.3).pointsMerge(false)
+            .pointLabel(function(p){ return "<div style='font-family:sans-serif;color:#fff'><b>"+p.info.cap+"</b> — اضغط لعرض الأخبار</div>"; })
+            .onPointClick(function(p){ enterCountry(p.info); })
+            .ringsData(capPoints)
+            .ringColor(function(){ return function(t){ return "rgba(130,205,255,"+(1-t)+")"; }; })
+            .ringMaxRadius(2.6).ringPropagationSpeed(1.4).ringRepeatPeriod(1600)
+            .arcsData(arcs)
+            .arcColor(function(){ return ["rgba(255,170,60,0.15)","rgba(255,80,60,0.95)"]; })
+            .arcStroke(0.5).arcAltitudeAutoScale(0.45)
+            .arcDashLength(0.45).arcDashGap(1.2).arcDashInitialGap(function(){ return Math.random()*2; }).arcDashAnimateTime(2200);
 
           world.pointOfView({ lat:20, lng:20, altitude:2.4 }, 0);
           // إجبار شفافية خلفية الكرة حتى تظهر النجوم والشهب من حولها
