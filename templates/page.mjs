@@ -437,8 +437,6 @@ export function renderPage(data) {
             .width(sz.w).height(sz.h)
             .backgroundColor("rgba(0,0,0,0)")
             .showAtmosphere(true).atmosphereColor("#4a9eda")
-            .globeImageUrl("//unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
-            .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
             .polygonsData(geo.features)
             .polygonAltitude(function(f){ return has(f.properties) ? 0.02 : 0.006; })
             .polygonCapColor(function(f){ return has(f.properties) ? "rgba(74,158,218,0.38)" : "rgba(255,255,255,0.015)"; })
@@ -467,6 +465,88 @@ export function renderPage(data) {
             if (world.scene) world.scene().background = null;
             var cv = el.querySelector("canvas"); if (cv) cv.style.background = "transparent";
           } catch (e) {}
+
+          // ظل ليل/نهار حقيقي + غيوم فوق الكرة
+          try {
+            var TH = window.THREE;
+            if (TH) {
+              var texLoader = new TH.TextureLoader();
+              var dayTex = texLoader.load("//unpkg.com/three-globe/example/img/earth-blue-marble.jpg");
+              var nightTex = texLoader.load("//unpkg.com/three-globe/example/img/earth-night.jpg");
+              var vSh = [
+                "varying vec3 vNormal;",
+                "varying vec2 vUv;",
+                "void main(){",
+                "  vNormal = normalize(normalMatrix * normal);",
+                "  vUv = uv;",
+                "  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+                "}"
+              ].join("\\n");
+              var fSh = [
+                "#define PI 3.141592653589793",
+                "uniform sampler2D dayTexture;",
+                "uniform sampler2D nightTexture;",
+                "uniform vec2 sunPosition;",
+                "uniform vec2 globeRotation;",
+                "varying vec3 vNormal;",
+                "varying vec2 vUv;",
+                "float toRad(in float a){ return a * PI / 180.0; }",
+                "vec3 Polar2Cartesian(in vec2 c){",
+                "  float theta = toRad(90.0 - c.x);",
+                "  float phi = toRad(90.0 - c.y);",
+                "  return vec3(sin(phi)*cos(theta), cos(phi), sin(phi)*sin(theta));",
+                "}",
+                "void main(){",
+                "  float invLon = toRad(globeRotation.x);",
+                "  float invLat = -toRad(globeRotation.y);",
+                "  mat3 rotX = mat3(1.0,0.0,0.0, 0.0,cos(invLat),-sin(invLat), 0.0,sin(invLat),cos(invLat));",
+                "  mat3 rotY = mat3(cos(invLon),0.0,sin(invLon), 0.0,1.0,0.0, -sin(invLon),0.0,cos(invLon));",
+                "  vec3 sunDir = rotX * rotY * Polar2Cartesian(sunPosition);",
+                "  float intensity = dot(normalize(vNormal), normalize(sunDir));",
+                "  vec4 dayColor = texture2D(dayTexture, vUv);",
+                "  vec4 nightColor = texture2D(nightTexture, vUv);",
+                "  float blend = smoothstep(-0.12, 0.15, intensity);",
+                "  gl_FragColor = mix(nightColor, dayColor, blend);",
+                "}"
+              ].join("\\n");
+              var dnMat = new TH.ShaderMaterial({
+                uniforms: {
+                  dayTexture: { value: dayTex },
+                  nightTexture: { value: nightTex },
+                  sunPosition: { value: new TH.Vector2() },
+                  globeRotation: { value: new TH.Vector2() }
+                },
+                vertexShader: vSh, fragmentShader: fSh
+              });
+              world.globeMaterial(dnMat);
+              world.onZoom(function(pov){ dnMat.uniforms.globeRotation.value.set(pov.lng, pov.lat); });
+              var updateSun = function(){
+                var d = new Date();
+                var startUTC = Date.UTC(d.getUTCFullYear(), 0, 0);
+                var doy = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - startUTC) / 86400000);
+                var decl = -23.44 * Math.cos((2.0 * Math.PI / 365.0) * (doy + 10));
+                var hrs = d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600;
+                var lng = ((-15 * (hrs - 12)) % 360 + 540) % 360 - 180;
+                dnMat.uniforms.sunPosition.value.set(lng, decl);
+              };
+              updateSun(); setInterval(updateSun, 60000);
+
+              var CR = world.getGlobeRadius();
+              texLoader.load("https://cdn.jsdelivr.net/gh/turban/webgl-earth@master/images/fair_clouds_4k.png", function(cloudsTex){
+                var clouds = new TH.Mesh(
+                  new TH.SphereGeometry(CR * 1.012, 64, 64),
+                  new TH.MeshPhongMaterial({ map: cloudsTex, transparent: true, opacity: 0.5, depthWrite: false })
+                );
+                world.scene().add(clouds);
+                (function rot(){ clouds.rotation.y += 0.0006; requestAnimationFrame(rot); })();
+              });
+            } else {
+              world.globeImageUrl("//unpkg.com/three-globe/example/img/earth-blue-marble.jpg");
+            }
+          } catch (e) {
+            try { world.globeImageUrl("//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"); } catch (_) {}
+          }
+
           var c = world.controls(); c.autoRotate = true; c.autoRotateSpeed = 0.5; c.enableZoom = true; c.minDistance = 160;
           window.addEventListener("resize", function(){ var s=size(); world.width(s.w).height(s.h); });
         })
