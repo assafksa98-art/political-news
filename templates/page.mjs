@@ -124,9 +124,18 @@ export function renderPage(data) {
     <div class="clouds" id="clouds" aria-hidden="true"></div>
     <button class="back-btn" id="backBtn" type="button">◀ الكرة الأرضية</button>
     <div class="city-panel">
-      <div class="city-name" id="cityName"></div>
-      <div class="city-weather" id="cityWeather"></div>
-      <a class="city-headline" id="cityHeadline" href="#" target="_blank" rel="noopener noreferrer"></a>
+      <div class="city-head">
+        <span class="city-name" id="cityName"></span>
+        <span class="city-weather" id="cityWeather"></span>
+      </div>
+      <a class="city-lead" id="cityLead" href="#" target="_blank" rel="noopener noreferrer">
+        <div class="city-lead-media" id="cityLeadMedia"></div>
+        <div class="city-lead-body">
+          <span class="city-src" id="cityLeadSrc"></span>
+          <span class="city-headline" id="cityHeadline" dir="auto"></span>
+          <span class="city-cta">اقرأ الخبر <span class="city-cta-ic">↗</span></span>
+        </div>
+      </a>
       <div class="city-more" id="cityMore"></div>
     </div>
   </div>
@@ -392,12 +401,21 @@ export function renderPage(data) {
         setTimeout(function(){ m.resize(); flyToCapital(m, info); }, 60);
         setTimeout(hideClouds, 1200);
         document.getElementById("cityName").textContent = info.cap + " · " + (CAT_TITLES[info.cat]||"");
-        var head = document.getElementById("cityHeadline");
-        if (list[0]) { head.textContent = list[0].title; head.href = list[0].link; head.style.display="block"; head.setAttribute("dir","auto"); }
-        else head.style.display="none";
+        var lead = list[0];
+        var leadA = document.getElementById("cityLead");
+        var media = document.getElementById("cityLeadMedia");
+        if (lead) {
+          leadA.style.display = "block"; leadA.href = lead.link;
+          document.getElementById("cityHeadline").textContent = lead.title;
+          document.getElementById("cityLeadSrc").textContent = lead.source;
+          if (lead.image) {
+            media.className = "city-lead-media has-img";
+            media.innerHTML = '<img src="' + lead.image + '" alt="" onerror="this.parentNode.className=\\'city-lead-media\\'" />';
+          } else { media.className = "city-lead-media"; media.innerHTML = ""; }
+        } else { leadA.style.display = "none"; }
         var more = document.getElementById("cityMore");
         more.innerHTML = list.slice(1,5).map(function(n){
-          return '<a href="'+n.link+'" target="_blank" rel="noopener noreferrer" dir="auto">'+ n.title.replace(/</g,"&lt;") +' <span>· '+ n.source +'</span></a>';
+          return '<a href="'+n.link+'" target="_blank" rel="noopener noreferrer" dir="auto">'+ n.title.replace(/</g,"&lt;") +' <span>'+ n.source +'</span></a>';
         }).join("");
       }
       function closeCity(){
