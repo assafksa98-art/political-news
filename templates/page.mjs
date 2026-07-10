@@ -27,15 +27,15 @@ function renderFeatured(item) {
   if (!item) return "";
   const time = item.dateText ? `<span class="time">${escapeHtml(item.dateText)}</span>` : "";
   const img = item.image ? `<div class="featured-media">${thumb(item.image, "featured-img")}</div>` : "";
-  const snipText = item.snippetAr || item.snippet;
-  const snippet = snipText ? `<p class="snippet" dir="auto">${escapeHtml(snipText)}</p>` : "";
+  const snippet = (item.snippet || item.snippetAr)
+    ? `<p class="snippet" dir="auto" data-en="${escapeHtml(item.snippet || "")}" data-ar="${escapeHtml(item.snippetAr || "")}">${escapeHtml(item.snippet || "")}</p>`
+    : "";
   return `
       <a class="featured-card" href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer">
         ${img}
         <div class="featured-body">
           <span class="badge">الأبرز · ${escapeHtml(item.source)}</span>
-          <h3 class="featured-title" dir="auto">${escapeHtml(item.titleAr || item.title)}</h3>
-          ${item.titleAr ? `<span class="orig" dir="auto">${escapeHtml(item.title)}</span>` : ""}
+          <h3 class="featured-title" dir="auto" data-en="${escapeHtml(item.title)}" data-ar="${escapeHtml(item.titleAr || "")}">${escapeHtml(item.title)}</h3>
           ${snippet}
           <div class="meta">${time}</div>
         </div>
@@ -49,8 +49,7 @@ function renderItem(item, i) {
         <a class="card" style="animation-delay:${i * 60}ms" href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer">
           ${img}
           <div class="card-body">
-            <span class="headline" dir="auto">${escapeHtml(item.titleAr || item.title)}</span>
-            ${item.titleAr ? `<span class="orig" dir="auto">${escapeHtml(item.title)}</span>` : ""}
+            <span class="headline" dir="auto" data-en="${escapeHtml(item.title)}" data-ar="${escapeHtml(item.titleAr || "")}">${escapeHtml(item.title)}</span>
             <div class="meta"><span class="source">${escapeHtml(item.source)}</span>${time}</div>
           </div>
         </a>`;
@@ -137,7 +136,6 @@ export function renderPage(data) {
         <div class="city-lead-body">
           <span class="city-src" id="cityLeadSrc"></span>
           <span class="city-headline" id="cityHeadline" dir="auto"></span>
-          <span class="orig" id="cityHeadlineOrig" dir="auto"></span>
           <span class="city-cta">اقرأ الخبر <span class="city-cta-ic">↗</span></span>
         </div>
       </a>
@@ -152,6 +150,7 @@ export function renderPage(data) {
     <div class="wrap"><p>يتم التحديث تلقائياً عدة مرات يومياً. الأخبار من مصادرها الأصلية عبر خلاصات RSS.</p></div>
   </footer>
 
+  <button class="lang-toggle" id="langBtn" type="button" aria-label="تبديل اللغة">عربي</button>
   <div class="toast" id="toast"></div>
 
   <script>
@@ -311,6 +310,18 @@ export function renderPage(data) {
       var toastEl = document.getElementById("toast"), toastTimer;
       function toast(m){ toastEl.textContent=m; toastEl.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(function(){toastEl.classList.remove("show");},2600); }
 
+      // === تبديل اللغة (عربي مترجم / إنجليزي أصلي) ===
+      window.__LANG__ = (function(){ try { return localStorage.getItem("lang") || "en"; } catch(e){ return "en"; } })();
+      function isAr(){ return window.__LANG__ === "ar"; }
+      function applyLang(){
+        var ar = isAr(), els = document.querySelectorAll("[data-en]");
+        for (var i=0;i<els.length;i++){ var el=els[i], av=el.getAttribute("data-ar"); el.textContent = (ar && av) ? av : el.getAttribute("data-en"); }
+        var b = document.getElementById("langBtn"); if (b) b.textContent = ar ? "English" : "عربي";
+        document.documentElement.setAttribute("data-lang", window.__LANG__);
+      }
+      function toggleLang(){ window.__LANG__ = isAr() ? "en" : "ar"; try { localStorage.setItem("lang", window.__LANG__); } catch(e){} applyLang(); }
+      (function(){ var lb=document.getElementById("langBtn"); if(lb) lb.addEventListener("click", toggleLang); applyLang(); })();
+
       var el = document.getElementById("globe"), stage = document.getElementById("globe-stage");
       var cityView = document.getElementById("cityView");
       var cloudsEl = document.getElementById("clouds");
@@ -416,10 +427,9 @@ export function renderPage(data) {
         var media = document.getElementById("cityLeadMedia");
         if (lead) {
           leadA.style.display = "block"; leadA.href = lead.link;
-          document.getElementById("cityHeadline").textContent = lead.titleAr || lead.title;
-          var origEl = document.getElementById("cityHeadlineOrig");
-          if (lead.titleAr) { origEl.textContent = lead.title; origEl.style.display = "block"; }
-          else { origEl.style.display = "none"; }
+          var hl = document.getElementById("cityHeadline");
+          hl.setAttribute("data-en", lead.title); hl.setAttribute("data-ar", lead.titleAr || "");
+          hl.textContent = (isAr() && lead.titleAr) ? lead.titleAr : lead.title;
           document.getElementById("cityLeadSrc").textContent = lead.source;
           if (lead.image) {
             media.className = "city-lead-media";
@@ -428,8 +438,12 @@ export function renderPage(data) {
         } else { leadA.style.display = "none"; }
         var more = document.getElementById("cityMore");
         more.innerHTML = list.slice(1,5).map(function(n){
-          return '<a href="'+n.link+'" target="_blank" rel="noopener noreferrer" dir="auto">'+ (n.titleAr||n.title).replace(/</g,"&lt;") +' <span>'+ n.source +'</span></a>';
+          var en = n.title.replace(/</g,"&lt;").replace(/"/g,"&quot;");
+          var ar = (n.titleAr||"").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+          var shown = (isAr() && n.titleAr) ? ar : en;
+          return '<a href="'+n.link+'" target="_blank" rel="noopener noreferrer"><span class="ml-t" dir="auto" data-en="'+en+'" data-ar="'+ar+'">'+shown+'</span> <span>'+n.source+'</span></a>';
         }).join("");
+        applyLang();
       }
       function closeCity(){
         cityView.classList.remove("show");

@@ -305,6 +305,21 @@ main { padding: 26px 16px 44px; }
   25% { background: rgba(240,136,62,0.14); }
 }
 
+/* زر تبديل اللغة (عائم) */
+.lang-toggle {
+  position: fixed; bottom: 18px; left: 18px; z-index: 1250;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(10,14,20,0.62); color: #fff; border: 1px solid var(--hair-strong);
+  padding: 9px 18px; border-radius: 999px; cursor: pointer;
+  font-family: var(--font-lat); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.02em;
+  backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: 0 14px 34px -16px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: transform 0.5s var(--ease), background 0.5s var(--ease);
+}
+.lang-toggle::before { content: "🌐"; font-size: 0.95rem; }
+.lang-toggle:hover { transform: translateY(-2px); background: rgba(20,27,37,0.75); }
+.lang-toggle:active { transform: scale(0.96); }
+
 /* تنبيه منبثق */
 .toast {
   position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(10px);
