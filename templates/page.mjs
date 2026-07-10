@@ -128,6 +128,7 @@ export function renderPage(data) {
         <span class="city-name" id="cityName"></span>
         <span class="city-weather" id="cityWeather"></span>
       </div>
+      <div class="city-summary" id="citySummary"></div>
       <a class="city-lead" id="cityLead" href="#" target="_blank" rel="noopener noreferrer">
         <div class="city-lead-media" id="cityLeadMedia"></div>
         <div class="city-lead-body">
@@ -277,6 +278,7 @@ export function renderPage(data) {
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script>
     window.__NEWS__ = ${JSON.stringify(data.newsByCat)};
+    window.__SUMMARY__ = ${JSON.stringify(data.summaryByCat || {})};
     window.__CAT_TITLES__ = ${JSON.stringify(catTitles)};
   </script>
   <script>
@@ -401,6 +403,10 @@ export function renderPage(data) {
         setTimeout(function(){ m.resize(); flyToCapital(m, info); }, 60);
         setTimeout(hideClouds, 1200);
         document.getElementById("cityName").textContent = info.cap + " · " + (CAT_TITLES[info.cat]||"");
+        var sum = (window.__SUMMARY__ || {})[info.cat] || "";
+        var sumEl = document.getElementById("citySummary");
+        if (sum) { sumEl.innerHTML = '<span class="city-summary-label">الزبدة · بالذكاء الاصطناعي</span><p>' + sum.replace(/</g,"&lt;") + '</p>'; sumEl.style.display = "block"; }
+        else { sumEl.style.display = "none"; sumEl.innerHTML = ""; }
         var lead = list[0];
         var leadA = document.getElementById("cityLead");
         var media = document.getElementById("cityLeadMedia");

@@ -196,6 +196,7 @@ async function main() {
 
   // بيانات مبسّطة لكل فئة يستهلكها JS (لعرض خبر الدولة على الخريطة الجوية)
   const newsByCat = {};
+  const summaryByCat = {};
   for (const c of categories) {
     const list = c.featured ? [c.featured, ...c.items] : [...c.items];
     newsByCat[c.id] = list.map((it) => ({
@@ -205,12 +206,14 @@ async function main() {
       image: it.image,
       dateText: it.dateText,
     }));
+    summaryByCat[c.id] = c.summary || "";
   }
 
   const html = renderPage({
     updatedAt: formatRiyadh(new Date()),
     categories,
     newsByCat,
+    summaryByCat,
     sourceCount: new Set(FEEDS.map((f) => f.name)).size,
     totalItems: all.length,
   });
