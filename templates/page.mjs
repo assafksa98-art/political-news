@@ -409,8 +409,8 @@ export function renderPage(data) {
           document.getElementById("cityHeadline").textContent = lead.title;
           document.getElementById("cityLeadSrc").textContent = lead.source;
           if (lead.image) {
-            media.className = "city-lead-media has-img";
-            media.innerHTML = '<img src="' + lead.image + '" alt="" onerror="this.parentNode.className=\\'city-lead-media\\'" />';
+            media.className = "city-lead-media";
+            media.innerHTML = '<img alt="" onload="this.parentNode.className=\\'city-lead-media has-img\\'" onerror="this.parentNode.className=\\'city-lead-media\\'" src="' + lead.image + '" />';
           } else { media.className = "city-lead-media"; media.innerHTML = ""; }
         } else { leadA.style.display = "none"; }
         var more = document.getElementById("cityMore");

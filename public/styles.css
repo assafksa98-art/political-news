@@ -231,7 +231,7 @@ img.flag {
 @keyframes panelIn { from { opacity: 0; transform: translateY(-10px) scale(0.98); } to { opacity: 1; transform: none; } }
 .city-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 6px 12px; }
 .city-name {
-  color: var(--amber); font-family: var(--font-lat); font-weight: 700; font-size: 0.6rem;
+  color: #a9c4e2; font-family: var(--font-lat); font-weight: 700; font-size: 0.6rem;
   text-transform: uppercase; letter-spacing: 0.18em;
 }
 .city-weather { color: #cdd9e8; font-size: 0.78rem; white-space: nowrap; }
@@ -258,12 +258,12 @@ img.flag {
 }
 .city-cta {
   display: inline-flex; align-items: center; gap: 8px; margin-top: 12px;
-  color: var(--amber); font-family: var(--font-ar); font-weight: 600; font-size: 0.82rem;
+  color: #a9c4e2; font-family: var(--font-ar); font-weight: 600; font-size: 0.82rem;
 }
 .city-cta-ic {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; border-radius: 999px; background: rgba(230,176,114,0.14);
-  border: 1px solid rgba(230,176,114,0.3); font-size: 0.72rem;
+  width: 22px; height: 22px; border-radius: 999px; background: rgba(122,162,204,0.14);
+  border: 1px solid rgba(122,162,204,0.3); font-size: 0.72rem;
   transition: transform 0.5s var(--ease);
 }
 .city-lead:hover .city-cta-ic { transform: translate(2px, -2px); }
@@ -319,19 +319,19 @@ main { padding: 26px 16px 44px; }
 
 /* الزبدة (تلخيص Claude) */
 .summary {
-  background: linear-gradient(180deg, rgba(230,176,114,0.08), rgba(230,176,114,0.02));
-  border: 1px solid rgba(230,176,114,0.22);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+  border: 1px solid var(--hair);
   border-radius: 16px; padding: 16px 18px; margin-bottom: 20px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .summary-label {
-  display: inline-block; background: rgba(230,176,114,0.16); color: var(--amber);
-  border: 1px solid rgba(230,176,114,0.3);
+  display: inline-block; background: rgba(122,162,204,0.14); color: #a9c4e2;
+  border: 1px solid rgba(122,162,204,0.26);
   font-family: var(--font-lat); font-size: 0.62rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.18em;
   padding: 4px 11px; border-radius: 999px; margin-bottom: 10px;
 }
-.summary p { margin: 0; color: #e7ddd0; line-height: 1.9; font-size: 0.98rem; }
+.summary p { margin: 0; color: var(--ink-2); line-height: 1.9; font-size: 0.98rem; }
 
 /* الخبر الأبرز */
 .featured-card {
@@ -349,8 +349,8 @@ main { padding: 26px 16px 44px; }
 .featured-card:hover .featured-img { transform: scale(1.05); }
 .featured-body { padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; justify-content: center; }
 .badge {
-  align-self: flex-start; background: rgba(230,176,114,0.12); color: var(--amber);
-  border: 1px solid rgba(230,176,114,0.3);
+  align-self: flex-start; background: rgba(122,162,204,0.12); color: #a9c4e2;
+  border: 1px solid rgba(122,162,204,0.28);
   font-family: var(--font-lat); font-size: 0.6rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.16em;
   padding: 4px 11px; border-radius: 999px;
