@@ -27,13 +27,15 @@ function renderFeatured(item) {
   if (!item) return "";
   const time = item.dateText ? `<span class="time">${escapeHtml(item.dateText)}</span>` : "";
   const img = item.image ? `<div class="featured-media">${thumb(item.image, "featured-img")}</div>` : "";
-  const snippet = item.snippet ? `<p class="snippet" dir="auto">${escapeHtml(item.snippet)}</p>` : "";
+  const snipText = item.snippetAr || item.snippet;
+  const snippet = snipText ? `<p class="snippet" dir="auto">${escapeHtml(snipText)}</p>` : "";
   return `
       <a class="featured-card" href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer">
         ${img}
         <div class="featured-body">
           <span class="badge">الأبرز · ${escapeHtml(item.source)}</span>
-          <h3 class="featured-title" dir="auto">${escapeHtml(item.title)}</h3>
+          <h3 class="featured-title" dir="auto">${escapeHtml(item.titleAr || item.title)}</h3>
+          ${item.titleAr ? `<span class="orig" dir="auto">${escapeHtml(item.title)}</span>` : ""}
           ${snippet}
           <div class="meta">${time}</div>
         </div>
@@ -47,7 +49,8 @@ function renderItem(item, i) {
         <a class="card" style="animation-delay:${i * 60}ms" href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer">
           ${img}
           <div class="card-body">
-            <span class="headline" dir="auto">${escapeHtml(item.title)}</span>
+            <span class="headline" dir="auto">${escapeHtml(item.titleAr || item.title)}</span>
+            ${item.titleAr ? `<span class="orig" dir="auto">${escapeHtml(item.title)}</span>` : ""}
             <div class="meta"><span class="source">${escapeHtml(item.source)}</span>${time}</div>
           </div>
         </a>`;
@@ -134,6 +137,7 @@ export function renderPage(data) {
         <div class="city-lead-body">
           <span class="city-src" id="cityLeadSrc"></span>
           <span class="city-headline" id="cityHeadline" dir="auto"></span>
+          <span class="orig" id="cityHeadlineOrig" dir="auto"></span>
           <span class="city-cta">اقرأ الخبر <span class="city-cta-ic">↗</span></span>
         </div>
       </a>
@@ -412,7 +416,10 @@ export function renderPage(data) {
         var media = document.getElementById("cityLeadMedia");
         if (lead) {
           leadA.style.display = "block"; leadA.href = lead.link;
-          document.getElementById("cityHeadline").textContent = lead.title;
+          document.getElementById("cityHeadline").textContent = lead.titleAr || lead.title;
+          var origEl = document.getElementById("cityHeadlineOrig");
+          if (lead.titleAr) { origEl.textContent = lead.title; origEl.style.display = "block"; }
+          else { origEl.style.display = "none"; }
           document.getElementById("cityLeadSrc").textContent = lead.source;
           if (lead.image) {
             media.className = "city-lead-media";
@@ -421,7 +428,7 @@ export function renderPage(data) {
         } else { leadA.style.display = "none"; }
         var more = document.getElementById("cityMore");
         more.innerHTML = list.slice(1,5).map(function(n){
-          return '<a href="'+n.link+'" target="_blank" rel="noopener noreferrer" dir="auto">'+ n.title.replace(/</g,"&lt;") +' <span>'+ n.source +'</span></a>';
+          return '<a href="'+n.link+'" target="_blank" rel="noopener noreferrer" dir="auto">'+ (n.titleAr||n.title).replace(/</g,"&lt;") +' <span>'+ n.source +'</span></a>';
         }).join("");
       }
       function closeCity(){

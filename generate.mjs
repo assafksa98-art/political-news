@@ -161,17 +161,17 @@ async function main() {
   const byCat = new Map(CATEGORIES.map((c) => [c.id, []]));
   for (const it of all) byCat.get(categorize(it)).push(it);
 
-  // التلخيص الذكي عبر Claude — يُفعّل تلقائياً فقط عند وجود ANTHROPIC_API_KEY
-  let summarizeCategory = null;
+  // الإثراء الذكي عبر Claude (تلخيص + ترجمة) — يُفعّل فقط عند وجود ANTHROPIC_API_KEY
+  let enrichCategory = null;
   if (process.env.ANTHROPIC_API_KEY) {
     try {
-      ({ summarizeCategory } = await import("./lib/summarize.mjs"));
-      console.log("التلخيص بـ Claude: مُفعّل");
+      ({ enrichCategory } = await import("./lib/summarize.mjs"));
+      console.log("الإثراء بـ Claude (تلخيص + ترجمة): مُفعّل");
     } catch (err) {
-      console.warn(`تعذّر تحميل وحدة التلخيص: ${err.message}`);
+      console.warn(`تعذّر تحميل وحدة الإثراء: ${err.message}`);
     }
   } else {
-    console.log("التلخيص بـ Claude: غير مُفعّل (لا يوجد ANTHROPIC_API_KEY)");
+    console.log("الإثراء بـ Claude: غير مُفعّل (لا يوجد ANTHROPIC_API_KEY)");
   }
 
   const categories = [];
@@ -181,8 +181,15 @@ async function main() {
       .slice(0, TOP_PER_CATEGORY)
       .map((it) => ({ ...it, dateText: it.date ? formatRiyadh(it.date) : "" }));
     let summary = "";
-    if (summarizeCategory && picked.length) {
-      summary = await summarizeCategory(cat.title, picked);
+    if (enrichCategory && picked.length) {
+      const res = await enrichCategory(cat.title, picked);
+      summary = res.summary;
+      (res.translations || []).forEach((tr, i) => {
+        if (picked[i] && tr) {
+          picked[i].titleAr = (tr.title_ar || "").trim();
+          picked[i].snippetAr = (tr.snippet_ar || "").trim();
+        }
+      });
     }
     categories.push({
       id: cat.id,
@@ -201,6 +208,7 @@ async function main() {
     const list = c.featured ? [c.featured, ...c.items] : [...c.items];
     newsByCat[c.id] = list.map((it) => ({
       title: it.title,
+      titleAr: it.titleAr || "",
       link: it.link,
       source: it.source,
       image: it.image,
